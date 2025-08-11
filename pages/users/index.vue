@@ -54,6 +54,9 @@
                 <p class="text-sm text-gray-900">
                   {{ getUserTransactionCount(user.id) }} transactions
                 </p>
+                <p class="text-sm font-medium text-primary-600">
+                  Balance: ${{ user.balance?.toFixed(2) || '0.00' }}
+                </p>
               </div>
               
               <div class="flex space-x-2">

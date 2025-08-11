@@ -47,12 +47,18 @@ export const useAuthStore = defineStore('auth', {
       try {
         const { data, error } = await $supabase
           .from('user_profiles')
-          .select('*')
+          .select(`
+            *,
+            user_balances(balance)
+          `)
           .eq('id', this.user.id)
           .single()
 
         if (error) throw error
-        this.profile = data
+        this.profile = {
+          ...data,
+          balance: data.user_balances?.[0]?.balance || 0
+        }
       } catch (error) {
         console.error('Error fetching profile:', error)
       }

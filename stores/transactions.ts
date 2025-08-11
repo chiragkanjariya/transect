@@ -72,6 +72,19 @@ export const useTransactionStore = defineStore('transactions', {
       const { $supabase } = useNuxtApp()
       
       try {
+        // Check sender's balance before creating transaction
+        const { data: senderBalance, error: balanceError } = await $supabase
+          .from('user_balances')
+          .select('balance')
+          .eq('user_id', transactionData.sender_id)
+          .single()
+
+        if (balanceError) throw balanceError
+        
+        if (senderBalance.balance < transactionData.amount) {
+          throw new Error(`Insufficient balance. Available: $${senderBalance.balance}, Required: $${transactionData.amount}`)
+        }
+
         const { data, error } = await $supabase
           .from('transactions')
           .insert(transactionData)

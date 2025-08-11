@@ -20,11 +20,17 @@ export const useUserStore = defineStore('users', {
         this.isLoading = true
         const { data, error } = await $supabase
           .from('user_profiles')
-          .select('*')
+          .select(`
+            *,
+            user_balances(balance)
+          `)
           .order('created_at', { ascending: true })
 
         if (error) throw error
-        this.users = data || []
+        this.users = (data || []).map(user => ({
+          ...user,
+          balance: user.user_balances?.[0]?.balance || 0
+        }))
       } catch (error) {
         console.error('Error fetching users:', error)
         throw error

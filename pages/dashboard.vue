@@ -6,6 +6,9 @@
       <p class="mt-1 text-sm text-gray-600">
         Welcome back, {{ authStore.profile?.full_name || authStore.user?.email }}
       </p>
+      <div class="mt-2 text-lg font-semibold text-primary-600">
+        Balance: ${{ authStore.profile?.balance?.toFixed(2) || '0.00' }}
+      </div>
     </div>
 
     <!-- Stats -->

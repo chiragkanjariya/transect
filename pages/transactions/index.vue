@@ -13,7 +13,7 @@
           @click="showCreateModal = true"
           class="btn-primary"
         >
-          Add Transaction
+          Create Transaction
         </button>
       </div>
     </div>
@@ -108,19 +108,23 @@
               
               <div v-if="authStore.isManager" class="flex space-x-2">
                 <button
-                  @click="editTransaction(transaction)"
-                  class="text-primary-600 hover:text-primary-500"
+                  v-if="transaction.status === 'pending'"
+                  @click="completeTransaction(transaction)"
+                  class="text-green-600 hover:text-green-500"
+                  title="Complete Transaction"
                 >
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </button>
                 <button
-                  @click="deleteTransaction(transaction)"
+                  v-if="transaction.status === 'pending'"
+                  @click="cancelTransaction(transaction)"
                   class="text-red-600 hover:text-red-500"
+                  title="Cancel Transaction"
                 >
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
@@ -133,16 +137,7 @@
     <!-- Create Transaction Modal -->
     <TransactionModal
       v-if="showCreateModal"
-      :transaction="null"
       @close="showCreateModal = false"
-      @saved="handleTransactionSaved"
-    />
-
-    <!-- Edit Transaction Modal -->
-    <TransactionModal
-      v-if="editingTransaction"
-      :transaction="editingTransaction"
-      @close="editingTransaction = null"
       @saved="handleTransactionSaved"
     />
   </div>
@@ -157,7 +152,6 @@ const authStore = useAuthStore()
 const transactionStore = useTransactionStore()
 
 const showCreateModal = ref(false)
-const editingTransaction = ref(null)
 
 const filters = reactive({
   status: '',
@@ -224,29 +218,50 @@ const getStatusBadgeClass = (status) => {
   return classes[status] || 'bg-gray-100 text-gray-800'
 }
 
-const editTransaction = (transaction) => {
-  editingTransaction.value = { ...transaction }
-}
-
-const deleteTransaction = async (transaction) => {
-  if (!confirm('Are you sure you want to delete this transaction?')) {
+const completeTransaction = async (transaction) => {
+  if (!confirm('Are you sure you want to complete this transaction?')) {
     return
   }
   
   try {
-    const { error } = await transactionStore.deleteTransaction(transaction.id)
+    const { error } = await transactionStore.updateTransaction(transaction.id, {
+      status: 'completed'
+    })
     if (error) {
-      alert('Error deleting transaction: ' + error)
+      alert('Error completing transaction: ' + error)
+    } else {
+      // Refresh user data to update balances
+      await Promise.all([
+        transactionStore.fetchUsers(),
+        useAuthStore().fetchProfile()
+      ])
     }
   } catch (error) {
-    console.error('Error deleting transaction:', error)
-    alert('Error deleting transaction')
+    console.error('Error completing transaction:', error)
+    alert('Error completing transaction')
+  }
+}
+
+const cancelTransaction = async (transaction) => {
+  if (!confirm('Are you sure you want to cancel this transaction?')) {
+    return
+  }
+  
+  try {
+    const { error } = await transactionStore.updateTransaction(transaction.id, {
+      status: 'cancelled'
+    })
+    if (error) {
+      alert('Error cancelling transaction: ' + error)
+    }
+  } catch (error) {
+    console.error('Error cancelling transaction:', error)
+    alert('Error cancelling transaction')
   }
 }
 
 const handleTransactionSaved = () => {
   showCreateModal.value = false
-  editingTransaction.value = null
 }
 
 // Fetch data on mount
